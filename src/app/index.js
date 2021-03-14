@@ -11,8 +11,8 @@ app.get('/', (req, res) => {
 })
 
 app.get('/login', (req, res) => {
-	const clientId = '620f16a20cf34c52a093c714264195ad'
-	const scopes = 'playlist-read-private playlist-read-collaborative'
+	const clientId = '57ae3c5aa90a4cd1a56af19f82fc5657'
+	const scopes = 'playlist-modify-private playlist-modify-public playlist-read-private playlist-read-collaborative'
 	const redirect_uri = 'http://' + req.hostname + ':' + port + '/playlists.html'
 	// TODO: change 'http://' to actual used protocol of express
 	res.redirect('https://accounts.spotify.com/authorize'

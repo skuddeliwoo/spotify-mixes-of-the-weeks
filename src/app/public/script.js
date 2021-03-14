@@ -1,10 +1,10 @@
-if(document.readyState == 'loading'){
+if (document.readyState == 'loading') {
 	document.onreadystatechange = function () {
-		if(document.readyState == 'interactive'){
+		if (document.readyState == 'interactive') {
 			app();
 		}
 	}
-} else{
+} else {
 	app();
 }
 
@@ -22,79 +22,135 @@ function app() {
 		})
 	}
 
+	function post(url, body = undefined) {
+		return fetch(url, {
+			method: 'POST',
+			headers: headers,
+			body: body
+		})
+	}
+
 	// TODO: err handling 401 token expired
 
 	// TODO: object sorting: playlist name asc, tracks track_number asc
 
 	const saveButton = document.querySelector('#saveButton');
 
-	fetchPlaylists = async () => {
-		const playlists = []
+	const findWeeklyMix = async () => {
+		try {
+			let weeklyMix;
 
-		let playlistBatchRes = await get(`https://api.spotify.com/v1/me/playlists`)
-		let playlistBatch = await playlistBatchRes.json()
+			let playlistBatchRes = await get(`https://api.spotify.com/v1/me/playlists`)
+			let playlistBatch = await playlistBatchRes.json()
 
-		playlistBatch.items.map((playlist) => {
-			playlists.push(handlePlaylist(playlist))
-		})
-
-		while (playlistBatch.next) {
-			playlistBatchRes = await get(playlistBatch.next)
-			playlistBatch = await playlistBatchRes.json()
+			if (playlistBatch.error) throw playlistBatch.error
 
 			playlistBatch.items.map((playlist) => {
-				playlists.push(handlePlaylist(playlist))
+				if (playlist.name == "Discover Weekly") weeklyMix = playlist
 			})
-		}
 
-		// returns array of promises created by handlePlaylists
-		return playlists
+			while (!weeklyMix && playlistBatch.next) {
+				playlistBatchRes = await get(playlistBatch.next)
+				playlistBatch = await playlistBatchRes.json()
+
+				playlistBatch.items.map((playlist) => {
+					if (playlist.name == "Discover Weekly") weeklyMix = playlist
+				})
+			}
+
+			if (!weeklyMix) throw Error('No playlist found with name "Discover Weekly"')
+
+			return weeklyMix
+		} catch (error) {
+			if (error.status && error.status === 401) {
+				alert(`looks like your authorization token has expired. You'll be redirected, then you can try again.`)
+				window.location.replace("login")
+			}
+			alert('Sorry, we were unable to find your Discover Weekly playlist: ' + error)
+		}
 	}
 
-	handlePlaylist = async (playlist) => {
+	const handlePlaylist = async (playlist) => {
 		let playlistMapped = {
 			name: playlist.name,
 			trackCount: playlist.tracks.total,
 			tracks: []
 		}
 
-		
 		playlistMapped = await fetchPlaylistTracks(playlistMapped, playlist.tracks.href)
 
 		return playlistMapped;
 	}
 
-	fetchPlaylistTracks = async (playlistMapped, url) => {
+	const fetchPlaylistTracks = async (playlistMapped, url) => {
 		return get(url)
-		.then(res => res.json())
-		.then(async res => {
-			await res.items.map((track) => {
-				playlistMapped.tracks.push({
-					name: track.track.name,
-					duration_ms: track.track.duration_ms,
-					artists: track.track.artists.map(artist => {
-						return  {
-							name: artist.name,
-							id: artist.id
-						}
-					}),
-					album: {
-						name: track.track.album.name,
-						id: track.track.album.id
-					},
-					track_number: track.track.track_number,
-					id: track.track.id
+			.then(res => res.json())
+			.then(async res => {
+				await res.items.map((track) => {
+					playlistMapped.tracks.push({
+						name: track.track.name,
+						duration_ms: track.track.duration_ms,
+						artists: track.track.artists.map(artist => {
+							return {
+								name: artist.name,
+								id: artist.id
+							}
+						}),
+						album: {
+							name: track.track.album.name,
+							id: track.track.album.id
+						},
+						track_number: track.track.track_number,
+						id: track.track.id
+					})
 				})
+				if (res.next) {
+					return await fetchPlaylistTracks(playlistMapped, res.next)
+				} else {
+					return playlistMapped
+				}
 			})
-			if (res.next) {
-				return await fetchPlaylistTracks(playlistMapped, res.next)
-			} else {
-				return playlistMapped
-			}
-		})
 	}
 
-	saveButton.onclick = async() => {
-		const playlists = await Promise.all(fetchPlaylists()) 
+	const saveWeeklyMix = async (mappedWeeklyMix) => {
+		const createRes = await post(`https://api.spotify.com/v1/me/playlists`, JSON.stringify({
+			name: 'MixOfTheWeek_' + new Date().getFullYear() % 100 + '_' + ISO8601_week(),
+			public: false,
+			description: 'Automatically Saved Discover Weekly Playlist via API integration'
+		}))
+
+		const createdPlaylist = await createRes.json()
+
+		const uris = mappedWeeklyMix.tracks.reduce((prev = '', curr, currI, arr) => {
+			return (typeof prev === 'string' ? prev : `spotify:track:${prev.id},`) + `spotify:track:${curr.id},`
+		})
+
+		const pushRes = await post(`https://api.spotify.com/v1/playlists/${createdPlaylist.id}/tracks?uris=${encodeURIComponent(uris)}`)
+	}
+
+	const ISO8601_week = () => {
+		const dt = new Date()
+		var tdt = new Date(dt.valueOf());
+		var dayn = (dt.getDay() + 6) % 7;
+		tdt.setDate(tdt.getDate() - dayn + 3);
+		var firstThursday = tdt.valueOf();
+		tdt.setMonth(0, 1);
+		if (tdt.getDay() !== 4) {
+			tdt.setMonth(0, 1 + ((4 - tdt.getDay()) + 7) % 7);
+		}
+		return 1 + Math.ceil((firstThursday - tdt) / 604800000);
+	}
+
+	saveButton.onclick = async () => {
+		const weeklyMix = await findWeeklyMix()
+		const mappedWeeklyMix = await handlePlaylist(weeklyMix)
+
+		// saveWeeklyMix(mappedWeeklyMix)
+
+		const uris = mappedWeeklyMix.tracks.reduce((prev = '', curr, currI, arr) => {
+			return (typeof prev === 'string' ? prev : `spotify:track:${prev.id},`) + `spotify:track:${curr.id},`
+		})
+
+		saveWeeklyMix(mappedWeeklyMix)
 	}
 }
