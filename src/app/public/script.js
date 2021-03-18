@@ -13,7 +13,8 @@ function app() {
 	const headers = new Headers({
 		'Authorization': 'Bearer ' + token,
 		'Accept': 'application/json',
-		'Content-Type': 'application/json'
+		'Content-Type': 'application/json',
+		'Accept-Language': 'en'
 	})
 
 	function get(url) {
@@ -46,6 +47,7 @@ function app() {
 			if (playlistBatch.error) throw playlistBatch.error
 
 			playlistBatch.items.map((playlist) => {
+					console.log(playlist.name)
 				if (playlist.name == "Discover Weekly") weeklyMix = playlist
 			})
 
@@ -54,6 +56,7 @@ function app() {
 				playlistBatch = await playlistBatchRes.json()
 
 				playlistBatch.items.map((playlist) => {
+					console.log(playlist.name)
 					if (playlist.name == "Discover Weekly") weeklyMix = playlist
 				})
 			}
