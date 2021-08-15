@@ -156,12 +156,6 @@ function app() {
 		const weeklyMix = await findWeeklyMix()
 		const mappedWeeklyMix = await handlePlaylist(weeklyMix)
 
-		// saveWeeklyMix(mappedWeeklyMix)
-
-		const uris = mappedWeeklyMix.tracks.reduce((prev = '', curr, currI, arr) => {
-			return (typeof prev === 'string' ? prev : `spotify:track:${prev.id},`) + `spotify:track:${curr.id},`
-		})
-
 		res = await saveWeeklyMix(mappedWeeklyMix)
 
 		if (res && res.statusText == 'Created') {
