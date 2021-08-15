@@ -35,6 +35,7 @@ function app() {
 	// TODO: object sorting: playlist name asc, tracks track_number asc
 
 	const saveButton = document.querySelector('#saveButton');
+	const statusText = document.querySelector('#statusText');
 
 	const findWeeklyMix = async () => {
 		try {
@@ -114,7 +115,7 @@ function app() {
 
 	const saveWeeklyMix = async (mappedWeeklyMix) => {
 		const createRes = await post(`https://api.spotify.com/v1/me/playlists`, JSON.stringify({
-			name: 'MixOfTheWeek_' + new Date().getFullYear() % 100 + '_' + ISO8601_week(),
+			name: generateName(),
 			public: false,
 			description: 'Automatically Saved Discover Weekly Playlist via API integration'
 		}))
@@ -126,6 +127,12 @@ function app() {
 		})
 
 		const pushRes = await post(`https://api.spotify.com/v1/playlists/${createdPlaylist.id}/tracks?uris=${encodeURIComponent(uris)}`)
+
+		return pushRes
+	}
+
+	const generateName = () => {
+		return 'MixOfTheWeek_' + new Date().getFullYear() % 100 + '_' + ISO8601_week()
 	}
 
 	const ISO8601_week = () => {
@@ -142,6 +149,7 @@ function app() {
 	}
 
 	saveButton.onclick = async () => {
+		statusText.textContent = 'Working on it...'
 		const weeklyMix = await findWeeklyMix()
 		const mappedWeeklyMix = await handlePlaylist(weeklyMix)
 
@@ -151,6 +159,11 @@ function app() {
 			return (typeof prev === 'string' ? prev : `spotify:track:${prev.id},`) + `spotify:track:${curr.id},`
 		})
 
-		saveWeeklyMix(mappedWeeklyMix)
+		res = await saveWeeklyMix(mappedWeeklyMix)
+
+		if (res && res.statusText == 'Created') {
+			console.log('success');
+			statusText.textContent = 'Great success! Your saved playlist should appear under the name ' + generateName()
+		}
 	}
 }
