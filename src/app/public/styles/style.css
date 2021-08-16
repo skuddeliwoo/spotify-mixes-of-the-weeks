@@ -1,0 +1,67 @@
+@font-face {
+  font-family: openSans;
+  src: url(../fonts/open-sans/OpenSans-Regular.ttf);
+}
+
+h1 {
+  font-size: 36px;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+h3 {
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+p {
+  font-size: 18px;
+  margin-bottom: 20px;
+  line-height: 24px;
+}
+
+body {
+  padding-top: 200px;
+  text-align: center;
+  background-color: #171b22;
+  color: #ddd;
+  font-family: openSans
+}
+
+img{
+  margin-top: 100px;
+  width: 120px;
+  height: auto;
+  border-radius: 150px;
+}
+
+a {
+  color: #46e1c4;
+}
+
+.main{
+  transform: translateX(-50%);
+  margin-left: 50%;
+  max-width: 550px;
+}
+
+.btn-main-action{
+  font-size: 24px;
+  margin-bottom: 70px;
+  cursor: pointer;
+  display: inline-block;
+  color: #333;
+  padding: 20px;
+  background-color: #46e1c4;
+  transform: rotate(0deg);
+  border-radius: 10px;
+  transition: transform 1s;
+}
+
+.btn-main-action.clicked{
+  transform: rotate(720deg);
+}

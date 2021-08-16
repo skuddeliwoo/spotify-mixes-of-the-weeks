@@ -152,6 +152,7 @@ function app() {
 	}
 
 	saveButton.onclick = async () => {
+		saveButton.classList.add('clicked')
 		statusText.textContent = 'Working on it...'
 		const weeklyMix = await findWeeklyMix()
 		const mappedWeeklyMix = await handlePlaylist(weeklyMix)
